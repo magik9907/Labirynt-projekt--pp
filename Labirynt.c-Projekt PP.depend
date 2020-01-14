@@ -1,0 +1,21 @@
+# depslib dependency file v1.0
+1578583093 source:d:\projekty programowanie\labirynt.c-projekt pp\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+
+1578862611 source:d:\projektyprogramowanie\labirynt.c-projekt pp\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<conio.h>
+
+1578931043 source:d:\projektyprogramowanie\labirynt.c-projekt pp\labirynt.c-projekt-pp\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<conio.h>
+
