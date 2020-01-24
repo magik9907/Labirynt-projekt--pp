@@ -42,7 +42,7 @@ typedef struct  MOVE{
 //zwraca wygenerowana mape o wymiarach (x,y)
 Map** generateFromFile (FILE *f, Desc *desc );
 //funckja wyszukujaca sciezke od startu do mety
-int searchRoad (Map **map, Desc *desc);
+void searchRoad (Map **map, Desc *desc);
 //sluzy do opisu konkrentej pozycji na mapie
 void mapDesc(Map **map,Desc *desc, int x, int y);
 //tworzy liste Move
@@ -54,13 +54,14 @@ Move* step(char s,Move *move,Map **map, int *y, int *x);
 //umozliwia tworzenie mapy przez uzytkowanika
 Map** createMapByUser(Desc* desc);
 //funkcja wyswietlaja wpomaga funkcje createMapByUser
-void print(Map** map, Desc* desc, int x, int y);
-
+void printForGenerator(Map** map, Desc* desc, int x, int y);
+void saveToFile(Map** map, Desc* desc);
 
 int main()
 {
     int l;
     char *file;
+    char opt;
     int status = 0;
 
     Map **map = NULL;
@@ -68,14 +69,20 @@ int main()
 
     do{
         file = (char* )malloc (256 * sizeof(char));
-        printf("Podaj sciezke do pliku lub\n jesli chcesz podac recznie mape wpisz: MAP\n Do zakonczenia programu wpisz: EXIT\n");
+        printf("Podaj sciezke do pliku lub\n jesli chcesz podac recznie mape wpisz: MAP\n Do zakonczenia programu wpisz: EXIT.\n Potwierdz klikajac ENTER\n ");
         fflush(stdin);
         gets(file);
         system("cls");
-        if(!strcmp(file, "EXIT\0") || !strcmp(file, "exit\0") ){
+        if(strcmp(file, "EXIT\0") == 0 || !strcmp(file, "exit\0") ){
             status = 1;
         }else if(!strcmp(file, "MAP\0") || !strcmp(file, "map\0") ){
             map = createMapByUser(desc);
+            system("cls");
+            printf("chcesz zapisac do pliku? t/n\n");
+            fflush(stdin);
+            scanf("%c",&opt);
+            if(opt == 't' || opt == 'T')
+                saveToFile(map, desc);
             system("cls");
             status = 0;
         }else{
@@ -89,10 +96,8 @@ int main()
             }else{
                 map = generateFromFile (fp, desc );
             }
-
             fclose(fp);
             free(file);
-
         }
 
         if(status != 1 && status != 3){
@@ -124,10 +129,8 @@ Map** generateFromFile (FILE *f, Desc *desc ){
     Map **map;
     map = (Map**) malloc (x * y * sizeof(Map*));
 
-
     for (i = 0; i<y; i++)
         map[i] =(Map*) malloc(x * sizeof(Map));
-
 
     for (i = 0; i<y; i++)
         for (l = 0; l<x; l++){
@@ -151,9 +154,7 @@ Map** generateFromFile (FILE *f, Desc *desc ){
                 desc -> isEnd = 1;
                 break;
             }
-
         }
-
     return map;
 }
 
@@ -187,13 +188,10 @@ Move* step(char s,Move *move,Map **map, int *y, int *x){
     }
     previous -> next = current;
     current -> prev = previous;
-
-
     return current;
-
 }
 
-int searchRoad (Map **map, Desc *desc){
+void searchRoad (Map **map, Desc *desc){
     int x = desc -> startX;
     int y = desc -> startY;
 
@@ -204,23 +202,10 @@ int searchRoad (Map **map, Desc *desc){
     int dy;
     int makeStepBack = 0;
     do{
-        mapDesc(map, desc, x, y);
+        if( !map[y][x].isUsed )
+            mapDesc(map, desc, x, y);
         //move when position is on start
-        if(map[y][x].mark == '$'){
-            if(map[y][x].up == 't' && map[y-1][x].isUsed == 0){
-                current = step('G', current, map, &y, &x);
-            }else if(map[y][x].right == 't' && map[y][x+1].isUsed == 0){
-                current = step('P', current, map, &y, &x);
-            }else if(map[y][x].left == 't' && map[y][x-1].isUsed == 0){
-                current = step('L', current, map, &y, &x);
-            }else if(map[y][x].down == 't' && map[y+1][x].isUsed == 0){
-                current = step('D', current, map, &y, &x);
-            }
-            else {
-                printf("brak przejscia \n");
-                return 1;
-            }
-        }else if( map[y][x].isUsed == 0 && (map[y][x].cross == 't' || map[y][x].cross == 'f') && makeStepBack == 0){
+       if( map[y][x].isUsed == 0 && (map[y][x].cross == 't' || map[y][x].cross == 'f') && makeStepBack == 0){
             dx = desc->endX - x;
             dy = desc->endY - y;
 
@@ -241,13 +226,17 @@ int searchRoad (Map **map, Desc *desc){
               //  pokolei
                 if(map[y][x].up ==  't' && map[y-1][x].isUsed != 1){
                     current = step('G', current, map, &y, &x);
-                }else if(map[y][x].down ==  't' && map[y+1][x].isUsed != 1){
+                }else if(map[y][x].down == 't' && map[y+1][x].isUsed != 1){
                     current = step('D', current, map, &y, &x);
-                }else if(map[y][x].left ==  't' && map[y][x-1].isUsed != 1){
-                    current = step('L', current, map, &y, &x);
-                }else if(map[y][x].right ==  't' && map[y][x+1].isUsed != 1){
+                }else if(map[y][x].right == 't' && map[y][x+1].isUsed != 1){
                     current = step('P', current, map, &y, &x);
+                }else if(map[y][x].left == 't' && map[y][x-1].isUsed != 1){
+                    current = step('L', current, map, &y, &x);
                 }else{
+                    if(map[y][x].mark == '$'){
+                        printf("Brak przejscia\n");
+                        return ;
+                    }
                     makeStepBack = 1;
                     map[y][x].isUsed = 1;
                 }
@@ -256,7 +245,6 @@ int searchRoad (Map **map, Desc *desc){
         }else{
             //making move back to nearest cross
             do{
-
                 current = current -> prev;
                 switch(current -> next -> step){
                 case 'G':
@@ -287,7 +275,7 @@ int searchRoad (Map **map, Desc *desc){
 
     current = step('K', current, map, &y, &x);
     printRoad(desc, map, move);
-    return 0;
+    return ;
 }
 
 void mapDesc(Map **map, Desc *desc, int x, int y){
@@ -309,7 +297,6 @@ void mapDesc(Map **map, Desc *desc, int x, int y){
     map[y][x].cross = (crossCount > 2)?'t':(crossCount == 1)?'e':'f';
 }
 
-
 Move* createNode(char nodeStep){
 
     Move *node = (Move*) malloc (sizeof(Move));
@@ -317,7 +304,6 @@ Move* createNode(char nodeStep){
     node -> prev = NULL;
     node -> next = NULL;
     return node;
-
 }
 
 void printRoad(Desc *desc, Map **map,Move *move){
@@ -344,6 +330,7 @@ void printRoad(Desc *desc, Map **map,Move *move){
     while(temp -> prev != NULL){
             temp = temp ->prev;
             free(temp->next);
+            temp->next = NULL;
     }
     free(temp);
 }
@@ -365,7 +352,6 @@ Map** createMapByUser(Desc* desc){
     for (i = 0; i<y; i++)
         map[i] =(Map*) malloc(x * sizeof(Map));
 
-
     for (i = 0; i<y; i++){
         for (l = 0; l<x; l++){
             map[i][l].mark = '#';
@@ -374,13 +360,11 @@ Map** createMapByUser(Desc* desc){
     }
 
     while(end == 0){
-
-        print(map, desc, n , m);
+        printForGenerator(map, desc, n , m);
         printf("\nX - obecna pozycja do zmiany;\nW - ruch w gore;\nS - ruch w dol;\nA - ruch w lewo;\nD  - ruch w prawo\n \nE - wyjscie z kreatora;\n $ -start;\n @ - koniec;\n . -droga;\n # lub (pole puste) -sciana\n");
         fflush(stdin);
         s=getc(stdin);
         system("cls");
-
         switch(s){
         case 'W':
         case 'w':
@@ -402,9 +386,17 @@ Map** createMapByUser(Desc* desc){
             if(n>0)
                 n--;
             break;
-        case '#':
         case '\n':
         case ' ':
+            if(n<x-1)
+                n++;
+            else {
+                n=0;
+                if(m<y-1)
+                    m++;
+            }
+            break;
+        case '#':
             map[m][n].mark = '#';
             if(n<x-1)
                 n++;
@@ -465,7 +457,7 @@ Map** createMapByUser(Desc* desc){
                 end = 1;
                 break;
             }
-            printf("mapa musi miec start ($) i mete (@) \n Czy chcesz wyjsc: t/n");
+            printf("mapa musi miec start ($) i mete (@) \n Czy chcesz wyjsc: t/n\n");
             fflush(stdin);
             scanf("%c",&s);
             if(s == 't' || s == 'T') end = 1;
@@ -476,13 +468,10 @@ Map** createMapByUser(Desc* desc){
         }
 
     }
-
-
     return map;
 }
 
-
-void print(Map** map, Desc* desc, int x, int y){
+void printForGenerator(Map** map, Desc* desc, int x, int y){
 int m, n, my = desc->y, nx = desc->x;
     for(m = 0; m < my ; m++){
         printf("\n");
@@ -491,5 +480,27 @@ int m, n, my = desc->y, nx = desc->x;
             else printf("%c", map[m][n].mark);
         }
     }
+}
 
+void saveToFile(Map** map, Desc* desc){
+    printf("Podaj nazwe pliku do zapisu:\n");
+    char file[100];
+    fflush(stdin);
+    scanf("%s",file);
+    FILE *f = fopen(file,"w");
+    if(f == NULL){
+        printf("blad otwarcia pliku");
+        system("pause");
+        return ;
+    }
+    fprintf(f,"%i %i", desc->x, desc->y);
+
+    int m, n, my = desc->y, nx = desc->x;
+    for(m = 0; m < my ; m++){
+        fprintf(f,"\n");
+        for(n = 0; n < nx; n++){
+            fprintf(f,"%c", map[m][n].mark);
+        }
+    }
+    fclose(f);
 }
