@@ -205,7 +205,7 @@ void searchRoad (Map **map, Desc *desc){
         if( !map[y][x].isUsed )
             mapDesc(map, desc, x, y);
         //move when position is on start
-       if( map[y][x].isUsed == 0 && (map[y][x].cross == 't' || map[y][x].cross == 'f') && makeStepBack == 0){
+       if( map[y][x].isUsed == 0 && makeStepBack == 0){
             dx = desc->endX - x;
             dy = desc->endY - y;
 
